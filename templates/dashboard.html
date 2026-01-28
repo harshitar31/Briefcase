@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – BriefCase</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="card dashboard">
+    <div class="nav">
+      <strong>BriefCase</strong>
+      <a href="/logout">Logout</a>
+    </div>
+
+    <p class="muted">{{ role }}</p>
+
+    <div class="actions">
+      <a href="/upload">Secure Upload</a>
+      <a href="/download">Secure Download</a>
+    </div>
+  </div>
+</body>
+</html>

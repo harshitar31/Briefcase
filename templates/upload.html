@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload – BriefCase</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="card">
+    <h2>Secure Upload</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% if can_upload %}
+      <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload File</button>
+      </form>
+    {% else %}
+      <div class="alert alert-error">
+        You do not have permission to upload files.
+      </div>
+
+      <div class="muted">
+        Please contact an administrator if you believe this is an error.
+      </div>
+    {% endif %}
+
+    <div class="muted">
+      <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>

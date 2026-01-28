@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download – BriefCase</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="card">
+    <h2>Secure Download</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <select name="file_id" required>
+        <option value="" disabled selected>Select a file to download</option>
+        {% for file in files %}
+          <option value="{{ file.id }}">{{ file.filename }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">Download File</button>
+    </form>
+
+    <div class="muted">
+      <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>
