@@ -1,24 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard – BriefCase</title>
+  <title>Dashboard | BriefCase</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-  <div class="card dashboard">
+
+  <div class="dashboard">
+
+    <!-- Top Navigation -->
     <div class="nav">
       <strong>BriefCase</strong>
-      <a href="/logout">Logout</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
-    <p class="muted">{{ role }}</p>
+    <!-- Alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endwith %}
 
+    <!-- Role badge -->
+    <span class="muted">{{ role }}</span>
+
+    <!-- Actions -->
     <div class="actions">
-      <a href="/upload">Secure Upload</a>
-      <a href="/download">Secure Download</a>
+
+      {% if role in ["admin", "uploader"] %}
+      <a href="{{ url_for('upload') }}">Upload File</a>
+      {% endif %}
+
+      <a href="{{ url_for('download') }}">Download Files</a>
+
+      {% if role == "viewer" %}
+      <form method="POST" action="{{ url_for('request_upload') }}">
+        <button style="margin-top: 1rem;">Request Upload Access</button>
+      </form>
+      {% endif %}
+
+      {% if role == "admin" %}
+      <a href="{{ url_for('admin_requests') }}">Review Upload Requests</a>
+      {% endif %}
+
     </div>
+
   </div>
+
 </body>
+
 </html>

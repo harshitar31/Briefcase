@@ -20,16 +20,23 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST">
-      <select name="file_id" required>
-        <option value="" disabled selected>Select a file to download</option>
-        {% for file in files %}
-          <option value="{{ file.id }}">{{ file.filename }}</option>
-        {% endfor %}
-      </select>
-
-      <button type="submit">Download File</button>
+   {% for file in files %}
+  <div class="actions">
+    <form method="POST" action="{{ url_for('download') }}" style="margin-bottom: 0.5rem;">
+      <input type="hidden" name="file_id" value="{{ file.id }}">
+      <button type="submit">Download {{ file.filename }}</button>
     </form>
+
+    {% if role == "admin" %}
+      <form method="POST" action="{{ url_for('delete_file', file_id=file.id) }}">
+        <button style="background:#fdecea;color:#b42318;">
+          Delete
+        </button>
+      </form>
+    {% endif %}
+  </div>
+{% endfor %}
+
 
     <div class="muted">
       <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>

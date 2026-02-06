@@ -77,7 +77,8 @@ body::before {
 }
 
 /* -------- Headings -------- */
-h1, h2 {
+h1,
+h2 {
   margin-bottom: 1.5rem;
   font-weight: 600;
   color: var(--green-primary);
@@ -93,7 +94,8 @@ h2 {
 }
 
 /* -------- Inputs -------- */
-input, select {
+input,
+select {
   width: 100%;
   padding: 14px 16px;
   margin-bottom: 1.25rem;
@@ -106,7 +108,8 @@ input, select {
   font-weight: 400;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--green-accent);
   background: #ffffff;
@@ -373,13 +376,50 @@ button:active {
   transform: translateX(-2px);
 }
 
+.action-btn {
+  display: inline-block;
+  padding: 10px 16px;
+  margin: 8px 0;
+  background-color: #b7e4c7;
+  /* pastel green */
+  color: #1b4332;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.action-btn:hover {
+  background-color: #95d5b2;
+}
+
+.danger-btn {
+  background-color: #fdecea;
+  color: #b42318;
+}
+
+.card {
+  max-width: 420px;
+  margin: 80px auto;
+  padding: 24px;
+  background: #f1faee;
+  border-radius: 12px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+
 /* -------- Responsive -------- */
 @media (max-width: 640px) {
-  .card, .dashboard {
+
+  .card,
+  .dashboard {
     width: 100%;
     padding: 2rem;
   }
-  
+
   .nav strong {
     font-size: 1.25rem;
   }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Upload Requests | Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="card">
+        <h2>Upload Access Requests</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        {% if requests %}
+        {% for user in requests %}
+        <div style="margin-bottom: 16px;">
+            <strong>{{ user.username }}</strong>
+
+            <form method="POST" action="{{ url_for('approve_upload', user_id=user.id) }}" style="display:inline;">
+                <button>Approve</button>
+            </form>
+
+            <form method="POST" action="{{ url_for('decline_upload', user_id=user.id) }}" style="display:inline;">
+                <button class="danger-btn">Decline</button>
+            </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="muted">No pending requests.</p>
+        {% endif %}
+
+        <a href="{{ url_for('dashboard') }}" class="action-btn">Back to Dashboard</a>
+    </div>
+
+</body>
+
+</html>

@@ -1,44 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register – BriefCase</title>
+  <title>Register | BriefCase</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
+
   <div class="card">
     <h2>Create Account</h2>
-    
+
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
     {% endwith %}
 
     <form method="POST">
-      <input type="text" name="username" placeholder="Username" required autocomplete="username">
-      <input type="email" name="email" placeholder="Email" required autocomplete="email">
-      <input type="password" name="password" placeholder="Password" required autocomplete="new-password">
-
-      <select name="role" required>
-        <option value="" disabled selected>Select your role</option>
-        <option value="admin">Admin</option>
-        <option value="uploader">Uploader</option>
-        <option value="viewer">Viewer</option>
-      </select>
-
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
       <button type="submit">Register</button>
     </form>
 
-    
-    <div class="muted">
-      <a href="{{ url_for('login') }}">Already have an account? Sign in</a>
-    </div>
+    <p class="muted">
+      Accounts are created with read-only access by default.
+    </p>
+
+    <p class="muted">
+      <a href="{{ url_for('login') }}">Back to Login</a>
+    </p>
   </div>
+
 </body>
+
 </html>

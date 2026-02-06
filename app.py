@@ -40,6 +40,31 @@ def reset_sessions_on_startup():
         conn.close()
         server_started = True
 
+@app.before_request
+def enforce_session_validity():
+    # Routes that do NOT require login
+    public_routes = {"login", "register", "verify_otp", "home", "static"}
+
+    if request.endpoint in public_routes:
+        return
+
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    # Re-check login status from DB (no cached access)
+    conn = get_db_connection()
+    user = conn.execute(
+        "SELECT is_logged_in FROM users WHERE id = ?",
+        (session["user_id"],)
+    ).fetchone()
+    conn.close()
+
+    if not user or user["is_logged_in"] == 0:
+        session.clear()
+        flash("Session expired. Please log in again.", "error")
+        return redirect(url_for("login"))
+
+
 # -------- SECURITY HELPERS --------
 def hash_password(password, salt):
     return hashlib.sha256((password + salt).encode()).hexdigest()
@@ -150,6 +175,8 @@ def register():
         salt = os.urandom(16).hex()
         password_hash = hash_password(request.form["password"], salt)
 
+        role = "viewer"  # 🔐 enforced default role
+
         conn = get_db_connection()
         conn.execute("""
             INSERT INTO users (username, email, password_hash, salt, role, created_at)
@@ -159,7 +186,7 @@ def register():
             request.form["email"],
             password_hash,
             salt,
-            request.form["role"],
+            role,
             datetime.now().isoformat()
         ))
         conn.commit()
@@ -169,6 +196,7 @@ def register():
         return redirect(url_for("login"))
 
     return render_template("register.html")
+
 
 # -------- LOGIN --------
 @app.route("/login", methods=["GET", "POST"])
@@ -239,28 +267,15 @@ def verify_otp():
 # -------- DASHBOARD --------
 @app.route("/dashboard")
 def dashboard():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    return render_template(
+        "dashboard.html",
+        role=session.get("role")
+    )
 
-    conn = get_db_connection()
-    user = conn.execute(
-        "SELECT is_logged_in, role FROM users WHERE id=?",
-        (session["user_id"],)
-    ).fetchone()
-    conn.close()
-
-    if not user or user["is_logged_in"] == 0:
-        session.clear()
-        return redirect(url_for("login"))
-
-    return render_template("dashboard.html", role=user["role"])
 
 # -------- UPLOAD (STAY ON PAGE) --------
 @app.route("/upload", methods=["GET", "POST"])
 def upload():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
     role = session.get("role")
 
     if not is_allowed(role, "upload"):
@@ -301,17 +316,16 @@ def upload():
 
     return render_template("upload.html", can_upload=True)
 
+
 # -------- DOWNLOAD (STAY ON PAGE) --------
 @app.route("/download", methods=["GET", "POST"])
 def download():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
+    role = session.get("role")
     files = get_all_files()
 
-    if not is_allowed(session.get("role"), "download"):
+    if not is_allowed(role, "download"):
         flash("You do not have permission to download files.", "error")
-        return render_template("download.html", files=files)
+        return render_template("download.html", files=files, role=role)
 
     if request.method == "POST":
         file_id = request.form["file_id"]
@@ -330,13 +344,13 @@ def download():
                 "File integrity verification failed. The file may have been tampered with.",
                 "error"
             )
-            return render_template("download.html", files=files)
+            return render_template("download.html", files=files, role=role)
 
         plaintext = aes_decrypt(rsa_decrypt_key(encrypted_key), iv, ciphertext)
 
         conn = get_db_connection()
         filename = conn.execute(
-            "SELECT filename FROM files WHERE id=?",
+            "SELECT filename FROM files WHERE id = ?",
             (file_id,)
         ).fetchone()["filename"]
         conn.close()
@@ -347,7 +361,107 @@ def download():
             download_name=filename
         )
 
-    return render_template("download.html", files=files)
+    return render_template("download.html", files=files, role=role)
+
+# -------- DELETE --------
+@app.route("/delete/<int:file_id>", methods=["POST"])
+def delete_file(file_id):
+    if not is_allowed(session.get("role"), "delete"):
+        flash("You do not have permission to delete files.", "error")
+        return render_template(
+            "download.html",
+            files=get_all_files(),
+            role=session.get("role")
+        )
+
+    paths = [
+        f"uploads/encrypted_files/{file_id}.bin",
+        f"uploads/encrypted_keys/{file_id}.key",
+        f"uploads/ivs/{file_id}.iv",
+        f"uploads/signatures/{file_id}.sig"
+    ]
+
+    for path in paths:
+        if os.path.exists(path):
+            os.remove(path)
+
+    conn = get_db_connection()
+    conn.execute("DELETE FROM files WHERE id = ?", (file_id,))
+    conn.commit()
+    conn.close()
+
+    flash("File deleted successfully.", "success")
+    return render_template(
+        "download.html",
+        files=get_all_files(),
+        role=session.get("role")
+    )
+
+
+@app.route("/request-upload", methods=["POST"])
+def request_upload():
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE users SET upload_requested = 1 WHERE id = ?",
+        (session["user_id"],)
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Upload access request sent to administrator.", "success")
+    return redirect(url_for("dashboard"))
+
+@app.route("/admin/requests")
+def admin_requests():
+    if session.get("role") != "admin":
+        flash("Unauthorized access.", "error")
+        return redirect(url_for("dashboard"))
+
+    conn = get_db_connection()
+    requests = conn.execute(
+        "SELECT id, username FROM users WHERE upload_requested = 1"
+    ).fetchall()
+    conn.close()
+
+    return render_template("admin_requests.html", requests=requests)
+
+
+@app.route("/admin/approve/<int:user_id>", methods=["POST"])
+def approve_upload(user_id):
+    if session.get("role") != "admin":
+        flash("Unauthorized action.", "error")
+        return redirect(url_for("dashboard"))
+
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE users SET role='uploader', upload_requested=0 WHERE id=?",
+        (user_id,)
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Upload access granted.", "success")
+    return redirect(url_for("admin_requests"))
+
+
+@app.route("/admin/decline/<int:user_id>", methods=["POST"])
+def decline_upload(user_id):
+    if session.get("role") != "admin":
+        flash("Unauthorized action.", "error")
+        return redirect(url_for("dashboard"))
+
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE users SET upload_requested = 0 WHERE id = ?",
+        (user_id,)
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Upload request declined.", "warning")
+    return redirect(url_for("admin_requests"))
+
+
 
 # -------- LOGOUT --------
 @app.route("/logout")
